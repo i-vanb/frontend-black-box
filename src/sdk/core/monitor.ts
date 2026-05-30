@@ -1,8 +1,10 @@
+import { ClickCollector } from "@collectors/click-collector";
 import { ErrorCollector } from "@collectors/error-collector";
 import { PromiseRejectionCollector } from "@collectors/promise-rejection-collector";
 import type { Collector } from "@sdk-types/collector";
 import type { MonitorConfig } from "@sdk-types/config";
-import type { MonitorEvent } from "@sdk-types/events";
+import type { Breadcrumb, MonitorEvent } from "@sdk-types/events";
+import { BreadcrumbStore } from "@storage/breadcrumb-store";
 import { normalizeError } from "@utils/normalize-error";
 
 const DEFAULT_CONFIG: Required<MonitorConfig> = {
@@ -16,6 +18,7 @@ class FrontendMonitor {
   private events: MonitorEvent[] = [];
   private initialized = false;
   private collectors: Collector[] = [];
+  private readonly breadcrumbStore = new BreadcrumbStore();
 
   init(config: MonitorConfig): void {
     if (this.initialized) {
@@ -36,6 +39,9 @@ class FrontendMonitor {
       }),
       new PromiseRejectionCollector({
         captureException: this.captureException.bind(this),
+      }),
+      new ClickCollector({
+        addBreadcrumb: this.addBreadcrumb.bind(this),
       }),
     ];
 
@@ -59,6 +65,7 @@ class FrontendMonitor {
       type: "error",
       message: normalizedError.message,
       ...(normalizedError.stack ? { stack: normalizedError.stack } : {}),
+      breadcrumbs: this.breadcrumbStore.getAll(),
       metadata: {
         ...metadata,
         ...(normalizedError.name ? { name: normalizedError.name } : {}),
@@ -84,6 +91,10 @@ class FrontendMonitor {
 
     this.collectors = [];
     this.initialized = false;
+  }
+
+  addBreadcrumb(breadcrumb: Omit<Breadcrumb, "id" | "timestamp">): void {
+    this.breadcrumbStore.add(breadcrumb);
   }
 
   private addEvent(event: Omit<MonitorEvent, "id" | "timestamp" | "appName" | "url">): void {

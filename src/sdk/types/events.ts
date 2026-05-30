@@ -9,4 +9,13 @@ export type MonitorEvent = {
   url: string;
   stack?: string;
   metadata?: Record<string, unknown>;
+  breadcrumbs?: Breadcrumb[];
+};
+
+export type Breadcrumb = {
+  id: string;
+  type: "click" | "manual";
+  message: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
 };

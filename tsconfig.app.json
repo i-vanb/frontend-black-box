@@ -29,6 +29,7 @@
     "paths": {
       "@sdk/*": ["./src/sdk/*"],
       "@core/*": ["./src/sdk/core/*"],
+      "@storage/*": ["./src/sdk/storage/*"],
       "@collectors/*": ["./src/sdk/collectors/*"],
       "@sdk-types/*": ["./src/sdk/types/*"],
       "@utils/*": ["./src/sdk/utils/*"]
