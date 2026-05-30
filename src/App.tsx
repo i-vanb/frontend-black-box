@@ -52,6 +52,19 @@ export default function App() {
       >
         Trigger test fetch
       </button>
+      <button
+        onClick={() => {
+          monitor.captureException(new Error("Sensitive metadata test"), {
+            token: "abc123",
+            password: "qwerty",
+            nested: {
+              accessToken: "secret-token",
+            },
+          });
+        }}
+      >
+        Trigger sensitive metadata error
+      </button>
     </main>
   );
 }

@@ -10,6 +10,7 @@ import type { Transport } from "@sdk-types/transport";
 import { HttpTransport } from "@sdk/transport/http-transport";
 import { BreadcrumbStore } from "@storage/breadcrumb-store";
 import { normalizeError } from "@utils/normalize-error";
+import { sanitizeValue } from "@utils/sanitize.ts";
 
 const DEFAULT_CONFIG: Required<MonitorConfig> = {
   appName: "unknown-app",
@@ -136,12 +137,17 @@ class FrontendMonitor {
   private addEvent(event: Omit<MonitorEvent, "id" | "timestamp" | "appName" | "url">): void {
     if (!this.config.enabled) return;
 
+    const sanitizedEvent = sanitizeValue(event) as Omit<
+      MonitorEvent,
+      "id" | "timestamp" | "appName" | "url"
+    >;
+
     const nextEvent: MonitorEvent = {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       appName: this.config.appName,
       url: window.location.href,
-      ...event,
+      ...sanitizedEvent,
     };
 
     this.events = [nextEvent, ...this.events].slice(0, this.config.maxEvents);
