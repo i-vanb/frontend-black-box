@@ -1,3 +1,5 @@
+import { ErrorCollector } from "../collectors/error-collector";
+import type { Collector } from "../types/collector";
 import type { MonitorConfig } from "../types/config";
 import type { MonitorEvent } from "../types/events";
 import { normalizeError } from "../utils/normalize-error";
@@ -12,6 +14,7 @@ class FrontendMonitor {
   private config: Required<MonitorConfig> = DEFAULT_CONFIG;
   private events: MonitorEvent[] = [];
   private initialized = false;
+  private collectors: Collector[] = [];
 
   init(config: MonitorConfig): void {
     if (this.initialized) {
@@ -25,6 +28,16 @@ class FrontendMonitor {
     };
 
     this.initialized = true;
+
+    this.collectors = [
+      new ErrorCollector({
+        captureException: this.captureException.bind(this),
+      }),
+    ];
+
+    this.collectors.forEach((collector) => {
+      collector.start();
+    });
 
     this.addEvent({
       type: "init",
@@ -58,6 +71,15 @@ class FrontendMonitor {
 
   clear(): void {
     this.events = [];
+  }
+
+  destroy(): void {
+    this.collectors.forEach((collector) => {
+      collector.stop();
+    });
+
+    this.collectors = [];
+    this.initialized = false;
   }
 
   private addEvent(event: Omit<MonitorEvent, "id" | "timestamp" | "appName" | "url">): void {

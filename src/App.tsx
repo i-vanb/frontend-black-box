@@ -30,6 +30,14 @@ export default function App() {
       >
         Clear
       </button>
+
+      <button
+        onClick={() => {
+          throw new Error("Automatic JS error from button");
+        }}
+      >
+        Trigger automatic JS error
+      </button>
     </main>
   );
 }
