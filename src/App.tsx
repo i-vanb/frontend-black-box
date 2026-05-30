@@ -38,6 +38,13 @@ export default function App() {
       >
         Trigger automatic JS error
       </button>
+      <button
+        onClick={() => {
+          void Promise.reject(new Error("Automatic promise rejection from button"));
+        }}
+      >
+        Trigger promise rejection
+      </button>
     </main>
   );
 }

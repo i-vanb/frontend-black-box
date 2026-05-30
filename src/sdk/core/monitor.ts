@@ -1,4 +1,5 @@
 import { ErrorCollector } from "../collectors/error-collector";
+import { PromiseRejectionCollector } from "../collectors/promise-rejection-collector";
 import type { Collector } from "../types/collector";
 import type { MonitorConfig } from "../types/config";
 import type { MonitorEvent } from "../types/events";
@@ -31,6 +32,9 @@ class FrontendMonitor {
 
     this.collectors = [
       new ErrorCollector({
+        captureException: this.captureException.bind(this),
+      }),
+      new PromiseRejectionCollector({
         captureException: this.captureException.bind(this),
       }),
     ];
