@@ -1,9 +1,12 @@
 import { ClickCollector } from "@collectors/click-collector";
 import { ErrorCollector } from "@collectors/error-collector";
 import { PromiseRejectionCollector } from "@collectors/promise-rejection-collector";
+import { EventQueue } from "@core/event-queue";
 import type { Collector } from "@sdk-types/collector";
 import type { MonitorConfig } from "@sdk-types/config";
 import type { Breadcrumb, MonitorEvent } from "@sdk-types/events";
+import type { Transport } from "@sdk-types/transport";
+import { HttpTransport } from "@sdk/transport/http-transport";
 import { BreadcrumbStore } from "@storage/breadcrumb-store";
 import { normalizeError } from "@utils/normalize-error";
 
@@ -11,6 +14,9 @@ const DEFAULT_CONFIG: Required<MonitorConfig> = {
   appName: "unknown-app",
   enabled: true,
   maxEvents: 100,
+  endpoint: "",
+  flushInterval: 5000,
+  batchSize: 10,
 };
 
 class FrontendMonitor {
@@ -19,6 +25,7 @@ class FrontendMonitor {
   private initialized = false;
   private collectors: Collector[] = [];
   private readonly breadcrumbStore = new BreadcrumbStore();
+  private eventQueue: EventQueue | undefined;
 
   init(config: MonitorConfig): void {
     if (this.initialized) {
@@ -30,6 +37,19 @@ class FrontendMonitor {
       ...DEFAULT_CONFIG,
       ...config,
     };
+
+    const transport: Transport | undefined = this.config.endpoint
+      ? new HttpTransport({ endpoint: this.config.endpoint })
+      : undefined;
+
+    this.eventQueue = new EventQueue({
+      appName: this.config.appName,
+      batchSize: this.config.batchSize,
+      flushInterval: this.config.flushInterval,
+      ...(transport ? { transport } : {}),
+    });
+
+    this.eventQueue.start();
 
     this.initialized = true;
 
@@ -91,6 +111,9 @@ class FrontendMonitor {
 
     this.collectors = [];
     this.initialized = false;
+
+    this.eventQueue?.stop();
+    this.eventQueue = undefined;
   }
 
   addBreadcrumb(breadcrumb: Omit<Breadcrumb, "id" | "timestamp">): void {
@@ -109,6 +132,8 @@ class FrontendMonitor {
     };
 
     this.events = [nextEvent, ...this.events].slice(0, this.config.maxEvents);
+
+    this.eventQueue?.add(nextEvent);
 
     console.info("[Frontend Black Box]", nextEvent);
   }
