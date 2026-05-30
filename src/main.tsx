@@ -8,6 +8,9 @@ import { monitor } from "./sdk";
 monitor.init({
   appName: "demo-app",
   maxEvents: 50,
+  endpoint: "/api/monitoring/events",
+  flushInterval: 5000,
+  batchSize: 10,
 });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

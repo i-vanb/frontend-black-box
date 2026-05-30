@@ -54,7 +54,7 @@ export class EventQueue {
 
     this.events = [...this.events, event];
 
-    if (this.events.length >= this.batchSize || event.type === "error") {
+    if (this.events.length >= this.batchSize) {
       void this.flush();
     }
   }
