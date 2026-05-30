@@ -10,6 +10,7 @@ monitor.init({
   maxEvents: 50,
   endpoint: "/api/monitoring/events",
   flushInterval: 5000,
+  maxQueueSize: 20,
   batchSize: 10,
 });
 

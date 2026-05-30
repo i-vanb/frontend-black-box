@@ -17,6 +17,7 @@ const DEFAULT_CONFIG: Required<MonitorConfig> = {
   endpoint: "",
   flushInterval: 5000,
   batchSize: 10,
+  maxQueueSize: 100,
 };
 
 class FrontendMonitor {
@@ -46,6 +47,7 @@ class FrontendMonitor {
       appName: this.config.appName,
       batchSize: this.config.batchSize,
       flushInterval: this.config.flushInterval,
+      maxQueueSize: this.config.maxQueueSize,
       ...(transport ? { transport } : {}),
     });
 

@@ -5,4 +5,5 @@ export type MonitorConfig = {
   endpoint?: string;
   flushInterval?: number;
   batchSize?: number;
+  maxQueueSize?: number;
 };

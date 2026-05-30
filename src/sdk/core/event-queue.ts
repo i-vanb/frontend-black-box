@@ -6,22 +6,27 @@ type EventQueueOptions = {
   batchSize: number;
   flushInterval: number;
   transport?: Transport;
+  maxQueueSize: number;
 };
 
 export class EventQueue {
   private readonly appName: string;
   private readonly batchSize: number;
   private readonly flushInterval: number;
+
+  private readonly maxQueueSize: number;
   private readonly transport: Transport | undefined;
 
   private events: MonitorEvent[] = [];
   private flushTimerId: number | undefined;
+  private isFlushing = false;
 
   constructor(options: EventQueueOptions) {
     this.appName = options.appName;
     this.batchSize = options.batchSize;
     this.flushInterval = options.flushInterval;
     this.transport = options.transport;
+    this.maxQueueSize = options.maxQueueSize;
   }
 
   start(): void {
@@ -52,7 +57,7 @@ export class EventQueue {
       return;
     }
 
-    this.events = [...this.events, event];
+    this.events = [...this.events, event].slice(-this.maxQueueSize);
 
     if (this.events.length >= this.batchSize) {
       void this.flush();
@@ -60,9 +65,11 @@ export class EventQueue {
   }
 
   async flush(): Promise<void> {
-    if (!this.transport || this.events.length === 0) {
+    if (!this.transport || this.events.length === 0 || this.isFlushing) {
       return;
     }
+
+    this.isFlushing = true;
 
     const eventsToSend = this.events.slice(0, this.batchSize);
 
@@ -75,6 +82,8 @@ export class EventQueue {
       this.events = this.events.slice(eventsToSend.length);
     } catch {
       // Monitoring must never break the host app.
+    } finally {
+      this.isFlushing = false;
     }
   }
 
