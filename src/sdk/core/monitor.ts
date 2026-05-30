@@ -1,4 +1,6 @@
-import type { MonitorConfig, MonitorEvent } from "./types";
+import type { MonitorConfig } from "../types/config";
+import type { MonitorEvent } from "../types/events";
+import { normalizeError } from "../utils/normalize-error";
 
 const DEFAULT_CONFIG: Required<MonitorConfig> = {
   appName: "unknown-app",
@@ -11,7 +13,7 @@ class FrontendMonitor {
   private events: MonitorEvent[] = [];
   private initialized = false;
 
-  init(config: MonitorConfig) {
+  init(config: MonitorConfig): void {
     if (this.initialized) {
       console.warn("[Frontend Black Box] Monitor already initialized");
       return;
@@ -33,17 +35,32 @@ class FrontendMonitor {
     });
   }
 
-  getEvents() {
+  captureException(error: unknown, metadata?: Record<string, unknown>): void {
+    const normalizedError = normalizeError(error);
+
+    this.addEvent({
+      type: "error",
+      message: normalizedError.message,
+      ...(normalizedError.stack ? { stack: normalizedError.stack } : {}),
+      metadata: {
+        ...metadata,
+        ...(normalizedError.name ? { name: normalizedError.name } : {}),
+        ...(normalizedError.originalValue !== undefined
+          ? { originalValue: normalizedError.originalValue }
+          : {}),
+      },
+    });
+  }
+
+  getEvents(): MonitorEvent[] {
     return this.events;
   }
 
-  clear() {
+  clear(): void {
     this.events = [];
   }
 
-  private addEvent(
-    event: Omit<MonitorEvent, "id" | "timestamp" | "appName" | "url">
-  ) {
+  private addEvent(event: Omit<MonitorEvent, "id" | "timestamp" | "appName" | "url">): void {
     if (!this.config.enabled) return;
 
     const nextEvent: MonitorEvent = {

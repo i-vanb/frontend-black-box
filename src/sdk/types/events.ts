@@ -1,15 +1,12 @@
-export type MonitorConfig = {
-  appName: string;
-  enabled?: boolean;
-  maxEvents?: number;
-};
+export type MonitorEventType = "init" | "error";
 
 export type MonitorEvent = {
   id: string;
-  type: "init" | "error" | "promise-error" | "breadcrumb";
+  type: MonitorEventType;
   message: string;
   timestamp: string;
   appName: string;
   url: string;
+  stack?: string;
   metadata?: Record<string, unknown>;
 };
