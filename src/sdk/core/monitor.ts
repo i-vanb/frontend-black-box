@@ -1,9 +1,9 @@
-import { ErrorCollector } from "../collectors/error-collector";
-import { PromiseRejectionCollector } from "../collectors/promise-rejection-collector";
-import type { Collector } from "../types/collector";
-import type { MonitorConfig } from "../types/config";
-import type { MonitorEvent } from "../types/events";
-import { normalizeError } from "../utils/normalize-error";
+import { ErrorCollector } from "@collectors/error-collector";
+import { PromiseRejectionCollector } from "@collectors/promise-rejection-collector";
+import type { Collector } from "@sdk-types/collector";
+import type { MonitorConfig } from "@sdk-types/config";
+import type { MonitorEvent } from "@sdk-types/events";
+import { normalizeError } from "@utils/normalize-error";
 
 const DEFAULT_CONFIG: Required<MonitorConfig> = {
   appName: "unknown-app",

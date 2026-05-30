@@ -1,4 +1,4 @@
-import type { Collector } from "../types/collector";
+import type { Collector } from "@sdk-types/collector";
 
 type ErrorCollectorOptions = {
   captureException: (error: unknown, metadata?: Record<string, unknown>) => void;

@@ -24,7 +24,15 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true
+    "noImplicitOverride": true,
+
+    "paths": {
+      "@sdk/*": ["./src/sdk/*"],
+      "@core/*": ["./src/sdk/core/*"],
+      "@collectors/*": ["./src/sdk/collectors/*"],
+      "@sdk-types/*": ["./src/sdk/types/*"],
+      "@utils/*": ["./src/sdk/utils/*"]
+    }
   },
   "include": ["src"]
 }
