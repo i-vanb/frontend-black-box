@@ -131,7 +131,9 @@ class FrontendMonitor {
   }
 
   addBreadcrumb(breadcrumb: Omit<Breadcrumb, "id" | "timestamp">): void {
-    this.breadcrumbStore.add(breadcrumb);
+    const sanitizedBreadcrumb = sanitizeValue(breadcrumb) as Omit<Breadcrumb, "id" | "timestamp">;
+
+    this.breadcrumbStore.add(sanitizedBreadcrumb);
   }
 
   private addEvent(event: Omit<MonitorEvent, "id" | "timestamp" | "appName" | "url">): void {

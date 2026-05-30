@@ -65,6 +65,20 @@ export default function App() {
       >
         Trigger sensitive metadata error
       </button>
+      <button
+        onClick={() => {
+          monitor.addBreadcrumb({
+            type: "manual",
+            message: "User started checkout flow",
+            metadata: {
+              cartItems: 3,
+              token: "secret-token",
+            },
+          });
+        }}
+      >
+        Add manual breadcrumb
+      </button>
     </main>
   );
 }
