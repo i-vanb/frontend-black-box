@@ -6,4 +6,5 @@ export type MonitorConfig = {
   flushInterval?: number;
   batchSize?: number;
   maxQueueSize?: number;
+  ignoredUrls?: string[];
 };

@@ -14,7 +14,7 @@ export type MonitorEvent = {
 
 export type Breadcrumb = {
   id: string;
-  type: "click" | "manual";
+  type: "click" | "manual" | "http";
   message: string;
   timestamp: string;
   metadata?: Record<string, unknown>;

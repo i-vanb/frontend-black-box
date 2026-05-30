@@ -45,6 +45,13 @@ export default function App() {
       >
         Trigger promise rejection
       </button>
+      <button
+        onClick={() => {
+          void fetch("/api/monitoring/test");
+        }}
+      >
+        Trigger test fetch
+      </button>
     </main>
   );
 }

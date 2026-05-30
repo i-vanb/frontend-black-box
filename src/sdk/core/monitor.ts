@@ -1,5 +1,6 @@
 import { ClickCollector } from "@collectors/click-collector";
 import { ErrorCollector } from "@collectors/error-collector";
+import { FetchCollector } from "@collectors/fetch-collector";
 import { PromiseRejectionCollector } from "@collectors/promise-rejection-collector";
 import { EventQueue } from "@core/event-queue";
 import type { Collector } from "@sdk-types/collector";
@@ -18,6 +19,7 @@ const DEFAULT_CONFIG: Required<MonitorConfig> = {
   flushInterval: 5000,
   batchSize: 10,
   maxQueueSize: 100,
+  ignoredUrls: [],
 };
 
 class FrontendMonitor {
@@ -33,6 +35,11 @@ class FrontendMonitor {
       console.warn("[Frontend Black Box] Monitor already initialized");
       return;
     }
+
+    const ignoredUrls = [
+      ...this.config.ignoredUrls,
+      ...(this.config.endpoint ? [this.config.endpoint] : []),
+    ];
 
     this.config = {
       ...DEFAULT_CONFIG,
@@ -64,6 +71,10 @@ class FrontendMonitor {
       }),
       new ClickCollector({
         addBreadcrumb: this.addBreadcrumb.bind(this),
+      }),
+      new FetchCollector({
+        addBreadcrumb: this.addBreadcrumb.bind(this),
+        ignoredUrls,
       }),
     ];
 
