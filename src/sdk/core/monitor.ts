@@ -1,19 +1,22 @@
-import { ClickCollector } from "@collectors/click-collector";
-import { ErrorCollector } from "@collectors/error-collector";
-import { FetchCollector } from "@collectors/fetch-collector";
-import { PromiseRejectionCollector } from "@collectors/promise-rejection-collector";
-import { EventQueue } from "@core/event-queue";
-import type { Collector } from "@sdk-types/collector";
-import type { MonitorConfig } from "@sdk-types/config";
-import type { Breadcrumb, MonitorEvent } from "@sdk-types/events";
-import type { Transport } from "@sdk-types/transport";
-import { HttpTransport } from "@sdk/transport/http-transport";
-import { BreadcrumbStore } from "@storage/breadcrumb-store";
-import { normalizeError } from "@utils/normalize-error";
-import { sanitizeValue } from "@utils/sanitize.ts";
+import { ClickCollector } from "../collectors/click-collector.js";
+import { ErrorCollector } from "../collectors/error-collector.js";
+import { FetchCollector } from "../collectors/fetch-collector.js";
+import { PromiseRejectionCollector } from "../collectors/promise-rejection-collector.js";
+import { BreadcrumbStore } from "../storage/breadcrumb-store.js";
+import { HttpTransport } from "../transport/http-transport.js";
+import type { Collector } from "../types/collector.js";
+import type { MonitorConfig } from "../types/config.js";
+import type { Breadcrumb, MonitorEvent } from "../types/events.js";
+import type { Transport } from "../types/transport.js";
+import { normalizeError } from "../utils/normalize-error.js";
+import { sanitizeUrl as defaultSanitizeUrl } from "../utils/sanitize-url.js";
+import { sanitizeValue } from "../utils/sanitize.js";
+import { EventQueue } from "./event-queue.js";
 
 const DEFAULT_CONFIG: Required<MonitorConfig> = {
   appName: "unknown-app",
+  environment: "production",
+  release: "unknown",
   enabled: true,
   maxEvents: 100,
   endpoint: "",
@@ -21,6 +24,12 @@ const DEFAULT_CONFIG: Required<MonitorConfig> = {
   batchSize: 10,
   maxQueueSize: 100,
   ignoredUrls: [],
+  requestTimeout: 5000,
+  maxRetries: 2,
+  retryBaseDelay: 250,
+  debug: false,
+  captureClickText: false,
+  sanitizeUrl: defaultSanitizeUrl,
 };
 
 class FrontendMonitor {
@@ -30,25 +39,31 @@ class FrontendMonitor {
   private collectors: Collector[] = [];
   private readonly breadcrumbStore = new BreadcrumbStore();
   private eventQueue: EventQueue | undefined;
+  private context: Record<string, unknown> = {};
 
   init(config: MonitorConfig): void {
     if (this.initialized) {
-      console.warn("[Frontend Black Box] Monitor already initialized");
       return;
     }
+
+    this.config = {
+      ...DEFAULT_CONFIG,
+      ...config,
+      maxEvents: Math.max(1, Math.min(1_000, config.maxEvents ?? DEFAULT_CONFIG.maxEvents)),
+    };
 
     const ignoredUrls = [
       ...this.config.ignoredUrls,
       ...(this.config.endpoint ? [this.config.endpoint] : []),
     ];
 
-    this.config = {
-      ...DEFAULT_CONFIG,
-      ...config,
-    };
-
     const transport: Transport | undefined = this.config.endpoint
-      ? new HttpTransport({ endpoint: this.config.endpoint })
+      ? new HttpTransport({
+          endpoint: this.config.endpoint,
+          timeout: this.config.requestTimeout,
+          maxRetries: this.config.maxRetries,
+          retryBaseDelay: this.config.retryBaseDelay,
+        })
       : undefined;
 
     this.eventQueue = new EventQueue({
@@ -66,16 +81,19 @@ class FrontendMonitor {
     this.collectors = [
       new ErrorCollector({
         captureException: this.captureException.bind(this),
+        sanitizeUrl: this.config.sanitizeUrl,
       }),
       new PromiseRejectionCollector({
         captureException: this.captureException.bind(this),
       }),
       new ClickCollector({
         addBreadcrumb: this.addBreadcrumb.bind(this),
+        captureText: this.config.captureClickText,
       }),
       new FetchCollector({
         addBreadcrumb: this.addBreadcrumb.bind(this),
         ignoredUrls,
+        sanitizeUrl: this.config.sanitizeUrl,
       }),
     ];
 
@@ -87,7 +105,8 @@ class FrontendMonitor {
       type: "init",
       message: "Monitor initialized",
       metadata: {
-        config: this.config,
+        environment: this.config.environment,
+        release: this.config.release,
       },
     });
   }
@@ -118,6 +137,21 @@ class FrontendMonitor {
     this.events = [];
   }
 
+  setContext(context: Record<string, unknown>): void {
+    this.context = sanitizeValue(context) as Record<string, unknown>;
+  }
+
+  clearContext(): void {
+    this.context = {};
+  }
+
+  addNavigationBreadcrumb(url: string): void {
+    this.addBreadcrumb({
+      type: "navigation",
+      message: this.config.sanitizeUrl(url),
+    });
+  }
+
   destroy(): void {
     this.collectors.forEach((collector) => {
       collector.stop();
@@ -128,6 +162,7 @@ class FrontendMonitor {
 
     this.eventQueue?.stop();
     this.eventQueue = undefined;
+    this.context = {};
   }
 
   addBreadcrumb(breadcrumb: Omit<Breadcrumb, "id" | "timestamp">): void {
@@ -148,15 +183,24 @@ class FrontendMonitor {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       appName: this.config.appName,
-      url: window.location.href,
+      environment: this.config.environment,
+      release: this.config.release,
+      url: this.config.sanitizeUrl(window.location.href),
+      ...(typeof this.context.requestId === "string" ? { requestId: this.context.requestId } : {}),
       ...sanitizedEvent,
+      metadata: {
+        ...this.context,
+        ...(sanitizedEvent.metadata ?? {}),
+      },
     };
 
     this.events = [nextEvent, ...this.events].slice(0, this.config.maxEvents);
 
     this.eventQueue?.add(nextEvent);
 
-    console.info("[Frontend Black Box]", nextEvent);
+    if (this.config.debug) {
+      console.info("[Frontend Black Box]", nextEvent);
+    }
   }
 }
 

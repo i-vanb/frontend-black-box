@@ -1,5 +1,5 @@
-import type { MonitorEvent } from "@sdk-types/events";
-import type { Transport } from "@sdk-types/transport";
+import type { MonitorEvent } from "../types/events.js";
+import type { Transport } from "../types/transport.js";
 
 type EventQueueOptions = {
   appName: string;
@@ -23,10 +23,10 @@ export class EventQueue {
 
   constructor(options: EventQueueOptions) {
     this.appName = options.appName;
-    this.batchSize = options.batchSize;
-    this.flushInterval = options.flushInterval;
+    this.maxQueueSize = Math.max(1, Math.min(1_000, options.maxQueueSize));
+    this.batchSize = Math.max(1, Math.min(100, options.batchSize));
+    this.flushInterval = Math.max(1_000, Math.min(60_000, options.flushInterval));
     this.transport = options.transport;
-    this.maxQueueSize = options.maxQueueSize;
   }
 
   start(): void {
@@ -72,6 +72,7 @@ export class EventQueue {
     this.isFlushing = true;
 
     const eventsToSend = this.events.slice(0, this.batchSize);
+    let delivered = false;
 
     try {
       await this.transport.send({
@@ -79,11 +80,16 @@ export class EventQueue {
         events: eventsToSend,
       });
 
-      this.events = this.events.slice(eventsToSend.length);
+      const sentIds = new Set(eventsToSend.map((event) => event.id));
+      this.events = this.events.filter((event) => !sentIds.has(event.id));
+      delivered = true;
     } catch {
       // Monitoring must never break the host app.
     } finally {
       this.isFlushing = false;
+      if (delivered && this.events.length >= this.batchSize) {
+        void this.flush();
+      }
     }
   }
 
@@ -94,12 +100,19 @@ export class EventQueue {
 
     const eventsToSend = this.events.slice(0, this.batchSize);
 
-    this.transport.sendOnExit({
+    const accepted = this.transport.sendOnExit({
       appName: this.appName,
       events: eventsToSend,
     });
 
-    this.events = this.events.slice(eventsToSend.length);
+    if (accepted) {
+      const sentIds = new Set(eventsToSend.map((event) => event.id));
+      this.events = this.events.filter((event) => !sentIds.has(event.id));
+    }
+  }
+
+  get size(): number {
+    return this.events.length;
   }
 
   private readonly handlePageExit = (): void => {

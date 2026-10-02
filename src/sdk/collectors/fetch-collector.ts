@@ -1,19 +1,23 @@
-import type { Collector } from "@sdk-types/collector";
-import type { Breadcrumb } from "@sdk-types/events";
+import type { Collector } from "../types/collector.js";
+import type { Breadcrumb } from "../types/events.js";
+import { sanitizeUrl as defaultSanitizeUrl } from "../utils/sanitize-url.js";
 
 type FetchCollectorOptions = {
   addBreadcrumb: (breadcrumb: Omit<Breadcrumb, "id" | "timestamp">) => void;
   ignoredUrls?: string[];
+  sanitizeUrl?: (url: string) => string;
 };
 
 export class FetchCollector implements Collector {
   private readonly addBreadcrumb: FetchCollectorOptions["addBreadcrumb"];
   private readonly ignoredUrls: string[];
+  private readonly sanitizeUrl: (url: string) => string;
   private originalFetch: typeof window.fetch | undefined;
 
   constructor(options: FetchCollectorOptions) {
     this.addBreadcrumb = options.addBreadcrumb;
     this.ignoredUrls = options.ignoredUrls ?? [];
+    this.sanitizeUrl = options.sanitizeUrl ?? defaultSanitizeUrl;
   }
 
   start(): void {
@@ -21,7 +25,7 @@ export class FetchCollector implements Collector {
       return;
     }
 
-    this.originalFetch = window.fetch;
+    this.originalFetch = window.fetch.bind(window);
     const originalFetch = this.originalFetch;
 
     window.fetch = async (...args) => {
@@ -30,6 +34,8 @@ export class FetchCollector implements Collector {
       const requestInit = args[1];
 
       const url = this.getRequestUrl(requestInfo);
+      const safeUrl = this.sanitizeUrl(url);
+      const method = this.getRequestMethod(requestInfo, requestInit);
 
       if (this.shouldIgnoreUrl(url)) {
         return originalFetch(...args);
@@ -41,9 +47,9 @@ export class FetchCollector implements Collector {
 
         this.addBreadcrumb({
           type: "http",
-          message: `${requestInit?.method ?? "GET"} ${url} ${response.status}`,
+          message: `${method} ${safeUrl} ${response.status}`,
           metadata: {
-            url,
+            url: safeUrl,
             status: response.status,
             ok: response.ok,
             duration,
@@ -56,9 +62,9 @@ export class FetchCollector implements Collector {
 
         this.addBreadcrumb({
           type: "http",
-          message: `${requestInit?.method ?? "GET"} ${url} failed`,
+          message: `${method} ${safeUrl} failed`,
           metadata: {
-            url,
+            url: safeUrl,
             duration,
             error,
           },
@@ -92,5 +98,17 @@ export class FetchCollector implements Collector {
 
   private shouldIgnoreUrl(url: string): boolean {
     return this.ignoredUrls.some((ignoredUrl) => url.includes(ignoredUrl));
+  }
+
+  private getRequestMethod(requestInfo: RequestInfo | URL, requestInit?: RequestInit): string {
+    if (requestInit?.method) {
+      return requestInit.method.toUpperCase();
+    }
+
+    if (requestInfo instanceof Request) {
+      return requestInfo.method.toUpperCase();
+    }
+
+    return "GET";
   }
 }

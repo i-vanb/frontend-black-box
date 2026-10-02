@@ -22,12 +22,13 @@ describe("normalizeError", () => {
   });
 
   it("normalizes unknown value", () => {
-    const value = { code: 500 };
+    const value = { code: 500, message: "Object failure", name: "ApiError" };
 
     const result = normalizeError(value);
 
     expect(result).toEqual({
-      message: "Unknown error",
+      message: "Object failure",
+      name: "ApiError",
       originalValue: value,
     });
   });

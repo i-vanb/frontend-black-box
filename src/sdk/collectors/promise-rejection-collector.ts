@@ -1,4 +1,4 @@
-import type { Collector } from "@sdk-types/collector";
+import type { Collector } from "../types/collector.js";
 
 type PromiseRejectionCollectorOptions = {
   captureException: (error: unknown, metadata?: Record<string, unknown>) => void;

@@ -1,4 +1,4 @@
-import type { MonitorEvent } from "@sdk/types/events.ts";
+import type { MonitorEvent } from "./events.js";
 
 export type TransportPayload = {
   appName: string;
@@ -7,5 +7,5 @@ export type TransportPayload = {
 
 export type Transport = {
   send: (payload: TransportPayload) => Promise<void>;
-  sendOnExit: (payload: TransportPayload) => void;
+  sendOnExit: (payload: TransportPayload) => boolean;
 };

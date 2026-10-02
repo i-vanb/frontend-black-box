@@ -20,6 +20,18 @@ export function normalizeError(error: unknown): NormalizedError {
     };
   }
 
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const message = typeof record.message === "string" ? record.message : "Unknown error";
+
+    return {
+      message,
+      ...(typeof record.stack === "string" ? { stack: record.stack } : {}),
+      ...(typeof record.name === "string" ? { name: record.name } : {}),
+      originalValue: error,
+    };
+  }
+
   return {
     message: "Unknown error",
     originalValue: error,

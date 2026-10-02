@@ -1,15 +1,18 @@
-import type { Collector } from "@sdk-types/collector";
-import type { Breadcrumb } from "@sdk-types/events";
+import type { Collector } from "../types/collector.js";
+import type { Breadcrumb } from "../types/events.js";
 
 type ClickCollectorOptions = {
   addBreadcrumb: (breadcrumb: Omit<Breadcrumb, "id" | "timestamp">) => void;
+  captureText?: boolean;
 };
 
 export class ClickCollector implements Collector {
   private readonly addBreadcrumb: ClickCollectorOptions["addBreadcrumb"];
+  private readonly captureText: boolean;
 
   constructor(options: ClickCollectorOptions) {
     this.addBreadcrumb = options.addBreadcrumb;
+    this.captureText = options.captureText ?? false;
   }
 
   start(): void {
@@ -37,6 +40,10 @@ export class ClickCollector implements Collector {
   };
 
   private getElementLabel(element: HTMLElement): string {
+    if (!this.captureText) {
+      return element.tagName.toLowerCase();
+    }
+
     const text = element.innerText.trim();
 
     if (text) {

@@ -1,15 +1,27 @@
 {
   "name": "frontend-black-box",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "description": "Privacy-conscious browser diagnostics SDK with bounded delivery.",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "clean": "node scripts/clean.mjs",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "prepare": "husky",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "prepare": "npm run build",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
@@ -18,29 +30,18 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
-    "vitest": "^4.1.7"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
-    "@types/node": "^24.12.3",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
-    "husky": "^9.1.7",
     "jsdom": "^29.1.1",
-    "lint-staged": "^16.4.0",
     "prettier": "^3.8.3",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vitest": "^4.1.11"
   }
 }

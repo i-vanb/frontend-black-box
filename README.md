@@ -1,6 +1,8 @@
 # Frontend Black Box
 
-Lightweight TypeScript-first frontend monitoring SDK for collecting runtime errors, promise rejections, user actions, network activity and delivering monitoring events to any external API endpoint.
+Lightweight, framework-independent browser diagnostics SDK for collecting runtime errors,
+promise rejections and bounded breadcrumbs, then delivering sanitized events to an application-owned
+endpoint.
 
 ## Why
 
@@ -8,11 +10,11 @@ Frontend applications often fail without enough context to understand what happe
 
 Frontend Black Box captures:
 
-* JavaScript runtime errors
-* Unhandled Promise rejections
-* User interaction breadcrumbs
-* Network request breadcrumbs
-* Custom developer breadcrumbs
+- JavaScript runtime errors
+- Unhandled Promise rejections
+- Privacy-safe interaction breadcrumbs
+- Network request breadcrumbs
+- Custom developer and navigation breadcrumbs
 
 and sends them to any monitoring backend without being coupled to a specific service.
 
@@ -56,7 +58,7 @@ and sends them to any monitoring backend without being coupled to a specific ser
 ## Installation
 
 ```bash
-npm install
+npm install github:i-vanb/frontend-black-box#<reviewed-commit>
 ```
 
 ## Development
@@ -79,28 +81,32 @@ npm run quality
 ## Basic Usage
 
 ```ts
-import { monitor } from './sdk';
+import { monitor } from "frontend-black-box";
 
 monitor.init({
-  appName: 'demo-app',
-  endpoint: '/api/monitoring/events',
+  appName: "demo-app",
+  environment: "production",
+  release: "git-sha",
+  endpoint: "/api/monitoring/events",
   flushInterval: 5000,
   batchSize: 10,
   maxQueueSize: 100,
+  sanitizeUrl: (url) => new URL(url, window.location.origin).pathname,
 });
 ```
+
+`sanitizeUrl` should map application capability URLs and dynamic identifiers to stable route
+templates. The built-in sanitizer removes query strings and fragments and redacts UUID/opaque path
+segments.
 
 ---
 
 ## Manual Error Reporting
 
 ```ts
-monitor.captureException(
-  new Error('Checkout failed'),
-  {
-    source: 'checkout-submit',
-  },
-);
+monitor.captureException(new Error("Checkout failed"), {
+  source: "checkout-submit",
+});
 ```
 
 ---
@@ -109,8 +115,8 @@ monitor.captureException(
 
 ```ts
 monitor.addBreadcrumb({
-  type: 'manual',
-  message: 'Checkout started',
+  type: "manual",
+  message: "Checkout started",
   metadata: {
     cartItems: 3,
   },
@@ -119,7 +125,26 @@ monitor.addBreadcrumb({
 
 ---
 
-## Example Event
+## Context and navigation
+
+```ts
+monitor.setContext({ requestId: "request-id-from-response" });
+monitor.addNavigationBreadcrumb(window.location.href);
+monitor.clearContext();
+```
+
+Context is sanitized and bounded before it is retained. Do not add customer content or credentials.
+
+## Delivery guarantees
+
+- Non-2xx responses fail delivery and retain queued events.
+- Network, timeout, `408`, `429`, and `5xx` failures use bounded exponential retries.
+- Queue overflow drops the oldest event and never exceeds `maxQueueSize`.
+- `sendBeacon` rejection falls back to `fetch(..., { keepalive: true })`.
+- Diagnostic delivery is ignored by the fetch collector to avoid feedback recursion.
+- Debug console output is disabled unless `debug: true` is configured.
+
+## Example event
 
 ```json
 {
@@ -217,9 +242,9 @@ Events are added to an internal queue.
 
 The SDK sends events when:
 
-* queue size reaches `batchSize`
-* flush interval expires
-* page is being closed or hidden
+- queue size reaches `batchSize`
+- flush interval expires
+- page is being closed or hidden
 
 The SDK uses:
 
@@ -233,7 +258,9 @@ when available to reduce event loss during page unload.
 
 ## Sensitive Data Protection
 
-The SDK automatically filters common sensitive fields:
+The SDK filters common sensitive fields and common email, bearer-token and JWT patterns. Values are
+bounded by depth, length, object keys and array size; cycles, `BigInt`, DOM elements and files are
+converted into JSON-safe summaries.
 
 ```txt
 password
@@ -262,13 +289,13 @@ Example:
 
 Current test coverage includes:
 
-* error normalization
-* sensitive data sanitization
-* breadcrumb storage
-* event queue batching
-* transport delivery
-* click collector
-* fetch collector
+- error normalization
+- sensitive data sanitization
+- breadcrumb storage
+- event queue batching
+- transport delivery
+- click collector
+- fetch collector
 
 ```bash
 npm run test:run
@@ -278,14 +305,14 @@ npm run test:run
 
 ## Roadmap
 
-* Session tracking
-* Performance monitoring
-* Route change breadcrumbs
-* Retry strategy
-* Event sampling
-* Dashboard UI panel
-* React integration package
-* OpenTelemetry bridge
+- Session tracking
+- Performance monitoring
+- Route change breadcrumbs
+- Retry strategy
+- Event sampling
+- Dashboard UI panel
+- React integration package
+- OpenTelemetry bridge
 
 ---
 

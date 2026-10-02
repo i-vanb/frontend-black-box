@@ -1,5 +1,7 @@
 export type MonitorConfig = {
   appName: string;
+  environment?: string;
+  release?: string;
   enabled?: boolean;
   maxEvents?: number;
   endpoint?: string;
@@ -7,4 +9,10 @@ export type MonitorConfig = {
   batchSize?: number;
   maxQueueSize?: number;
   ignoredUrls?: string[];
+  requestTimeout?: number;
+  maxRetries?: number;
+  retryBaseDelay?: number;
+  debug?: boolean;
+  captureClickText?: boolean;
+  sanitizeUrl?: (url: string) => string;
 };

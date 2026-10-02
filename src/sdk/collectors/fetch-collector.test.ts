@@ -1,6 +1,6 @@
-import type { Breadcrumb } from "@sdk-types/events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { Breadcrumb } from "../types/events.js";
 import { FetchCollector } from "./fetch-collector";
 
 type AddBreadcrumb = (breadcrumb: Omit<Breadcrumb, "id" | "timestamp">) => void;
@@ -91,7 +91,7 @@ describe("FetchCollector", () => {
     collector.stop();
   });
 
-  it("restores original fetch on stop", () => {
+  it("restores a working original fetch on stop", async () => {
     const originalFetch = vi.fn<typeof fetch>().mockResolvedValue(new Response(null));
 
     vi.stubGlobal("fetch", originalFetch);
@@ -102,10 +102,44 @@ describe("FetchCollector", () => {
 
     collector.start();
 
-    expect(window.fetch).not.toBe(originalFetch);
-
     collector.stop();
+    await fetch("/after-stop");
 
-    expect(window.fetch).toBe(originalFetch);
+    expect(originalFetch).toHaveBeenCalledWith("/after-stop");
+  });
+
+  it("uses method and URL from a Request object", async () => {
+    const addBreadcrumb = vi.fn<AddBreadcrumb>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 })),
+    );
+    const collector = new FetchCollector({ addBreadcrumb });
+    collector.start();
+
+    await fetch(new Request("https://example.test/api/items", { method: "PATCH" }));
+
+    expect(addBreadcrumb.mock.calls[0]?.[0].message).toBe(
+      "PATCH https://example.test/api/items 204",
+    );
+    collector.stop();
+  });
+
+  it("removes sensitive query and fragment data from breadcrumbs", async () => {
+    const addBreadcrumb = vi.fn<AddBreadcrumb>();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 })),
+    );
+    const collector = new FetchCollector({ addBreadcrumb });
+    collector.start();
+
+    await fetch("/api/items?token=secret#private");
+
+    expect(addBreadcrumb.mock.calls[0]?.[0]).toMatchObject({
+      message: "GET /api/items 200",
+      metadata: { url: "/api/items" },
+    });
+    collector.stop();
   });
 });

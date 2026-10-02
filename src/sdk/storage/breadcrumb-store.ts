@@ -1,4 +1,4 @@
-import type { Breadcrumb } from "@sdk-types/events";
+import type { Breadcrumb } from "../types/events.js";
 
 const DEFAULT_MAX_BREADCRUMBS = 20;
 

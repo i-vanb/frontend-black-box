@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    "types": ["vite/client"],
+    "types": ["vitest/globals"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -13,7 +13,6 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "jsx": "react-jsx",
 
     /* Linting */
     "noUnusedLocals": true,
@@ -24,17 +23,7 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "noImplicitOverride": true,
-
-    "paths": {
-      "@sdk/*": ["./src/sdk/*"],
-      "@core/*": ["./src/sdk/core/*"],
-      "@transport/*": ["./src/sdk/transport/*"],
-      "@storage/*": ["./src/sdk/storage/*"],
-      "@collectors/*": ["./src/sdk/collectors/*"],
-      "@sdk-types/*": ["./src/sdk/types/*"],
-      "@utils/*": ["./src/sdk/utils/*"]
-    }
+    "noImplicitOverride": true
   },
-  "include": ["src"]
+  "include": ["src/sdk"]
 }
