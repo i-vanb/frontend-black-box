@@ -91,6 +91,7 @@ monitor.init({
   flushInterval: 5000,
   batchSize: 10,
   maxQueueSize: 100,
+  requestIdHeader: "x-request-id",
   sanitizeUrl: (url) => new URL(url, window.location.origin).pathname,
 });
 ```
@@ -134,6 +135,8 @@ monitor.clearContext();
 ```
 
 Context is sanitized and bounded before it is retained. Do not add customer content or credentials.
+When `requestIdHeader` is configured, the most recent validated response correlation ID is attached
+to subsequent events.
 
 ## Delivery guarantees
 

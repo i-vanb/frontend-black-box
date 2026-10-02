@@ -15,4 +15,5 @@ export type MonitorConfig = {
   debug?: boolean;
   captureClickText?: boolean;
   sanitizeUrl?: (url: string) => string;
+  requestIdHeader?: string;
 };

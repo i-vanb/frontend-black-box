@@ -142,4 +142,27 @@ describe("FetchCollector", () => {
     });
     collector.stop();
   });
+
+  it("captures a validated correlation id from response headers", async () => {
+    const setRequestId = vi.fn<(requestId: string) => void>();
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response(null, { status: 200, headers: { "x-insinta-request-id": "request-123" } }),
+        ),
+    );
+    const collector = new FetchCollector({
+      addBreadcrumb: vi.fn<AddBreadcrumb>(),
+      requestIdHeader: "x-insinta-request-id",
+      setRequestId,
+    });
+    collector.start();
+
+    await fetch("/api/items");
+
+    expect(setRequestId).toHaveBeenCalledWith("request-123");
+    collector.stop();
+  });
 });

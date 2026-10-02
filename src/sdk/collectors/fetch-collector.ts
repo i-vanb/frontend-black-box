@@ -6,18 +6,24 @@ type FetchCollectorOptions = {
   addBreadcrumb: (breadcrumb: Omit<Breadcrumb, "id" | "timestamp">) => void;
   ignoredUrls?: string[];
   sanitizeUrl?: (url: string) => string;
+  requestIdHeader?: string;
+  setRequestId?: (requestId: string) => void;
 };
 
 export class FetchCollector implements Collector {
   private readonly addBreadcrumb: FetchCollectorOptions["addBreadcrumb"];
   private readonly ignoredUrls: string[];
   private readonly sanitizeUrl: (url: string) => string;
+  private readonly requestIdHeader: string | undefined;
+  private readonly setRequestId: ((requestId: string) => void) | undefined;
   private originalFetch: typeof window.fetch | undefined;
 
   constructor(options: FetchCollectorOptions) {
     this.addBreadcrumb = options.addBreadcrumb;
     this.ignoredUrls = options.ignoredUrls ?? [];
     this.sanitizeUrl = options.sanitizeUrl ?? defaultSanitizeUrl;
+    this.requestIdHeader = options.requestIdHeader;
+    this.setRequestId = options.setRequestId;
   }
 
   start(): void {
@@ -44,6 +50,12 @@ export class FetchCollector implements Collector {
       try {
         const response = await originalFetch(...args);
         const duration = Math.round(performance.now() - startedAt);
+        const requestId = this.requestIdHeader
+          ? response.headers.get(this.requestIdHeader)?.trim()
+          : null;
+        if (requestId && !requestId.includes(",") && /^[A-Za-z0-9_.:-]{1,128}$/.test(requestId)) {
+          this.setRequestId?.(requestId);
+        }
 
         this.addBreadcrumb({
           type: "http",

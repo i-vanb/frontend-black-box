@@ -30,6 +30,7 @@ const DEFAULT_CONFIG: Required<MonitorConfig> = {
   debug: false,
   captureClickText: false,
   sanitizeUrl: defaultSanitizeUrl,
+  requestIdHeader: "x-request-id",
 };
 
 class FrontendMonitor {
@@ -94,6 +95,10 @@ class FrontendMonitor {
         addBreadcrumb: this.addBreadcrumb.bind(this),
         ignoredUrls,
         sanitizeUrl: this.config.sanitizeUrl,
+        requestIdHeader: this.config.requestIdHeader,
+        setRequestId: (requestId) => {
+          this.context = { ...this.context, requestId };
+        },
       }),
     ];
 
